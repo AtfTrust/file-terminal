@@ -23,7 +23,7 @@ BOLD = "\033[1m"
 
 # Global list for tab-completion
 CURRENT_ITEMS = []
-COMMANDS = ['cd', 'get', 'put', 'zip', 'exit', 'quit', '..']
+COMMANDS = ['cd', 'get', 'put', 'zip', 'help', '?', 'exit', 'quit', '..']
 
 def complete(text, state):
     buffer = readline.get_line_buffer()
@@ -121,6 +121,18 @@ def download_item(base_url, item, current_path, as_zip=False):
     except Exception as e:
         print(f"{RED}Failed: {e}{RESET}")
     
+    input(f"{GREY}[Press Enter]{RESET}")
+
+def show_help():
+    print(f"\n{BOLD}Available Commands:{RESET}")
+    print(f"  {BOLD}cd <dir/id>{RESET}       : Change directory (or use index number)")
+    print(f"  {BOLD}get <file/id...>{RESET}  : Download file(s) or folder(s) (supports ranges like 1-5)")
+    print(f"  {BOLD}put <local_file>{RESET}  : Upload a local file to current remote directory")
+    print(f"  {BOLD}zip <dir/id...>{RESET}  : Download folder(s) as .zip file")
+    print(f"  {BOLD}..{RESET}               : Go up one directory")
+    print(f"  {BOLD}exit / quit{RESET}      : Exit the application")
+    print(f"  {BOLD}help / ?{RESET}         : Show this help message")
+    print(f"\n  {GREY}Tip: You can simply type the index number to enter a folder or download a file.{RESET}")
     input(f"{GREY}[Press Enter]{RESET}")
 
 def upload_file(base_url, local_path, remote_dir):
@@ -223,6 +235,9 @@ def main():
         arg = parts[1] if len(parts) > 1 else ""
 
         if action in ['exit', 'quit', 'q']: break
+        if action in ['help', '?']:
+            show_help()
+            continue
         if action == '..' or (action == 'cd' and arg == '..'):
             if current_path != ".":
                 current_path = os.path.dirname(current_path)
