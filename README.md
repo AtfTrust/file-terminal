@@ -9,6 +9,8 @@ A lightweight, terminal-based file server and client application for easy file n
 - **File & Folder Downloads**:
     - Download individual files with a visual progress bar.
     - Download entire directories (automatically zipped).
+- **File Uploads**: Upload files from your local machine to the server.
+- **Batch Operations**: Download multiple files or ranges at once (e.g., `get 1-5` or `get 1 3 file.txt`).
 - **Search**: Search for files on the server.
 - **Cross-Platform**: Works on Windows, Linux, and WSL (proxies bypassed for local connections).
 
@@ -48,8 +50,9 @@ python client.py
 | Command | Description |
 | :--- | :--- |
 | `cd <dir>` | Change directory |
-| `get <file>` | Download a file or zip a folder |
-| `zip <dir>` | Download a folder as a zip file |
+| `get <target>` | Download file(s) or folder(s). Supports lists (`get 1 3`) and ranges (`get 1-5`) |
+| `put <file>` | Upload a local file to the current remote directory |
+| `zip <dir>` | Download folder(s) as zip file(s). Supports lists/ranges. |
 | `..` | Go up one directory |
 | `exit` / `quit` | Exit the client |
 
