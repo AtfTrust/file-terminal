@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import readline
+import time
 
 # --- CONFIG ---
 DEFAULT_IP = "192.168.33.61"
@@ -92,10 +93,30 @@ def download_item(base_url, item, current_path, as_zip=False):
         opener = urllib.request.build_opener(proxy_handler)
         
         with opener.open(url, timeout=60) as response, open(local_path, 'wb') as out_file:
+            total_size = int(response.getheader('Content-Length') or 0)
+            downloaded = 0
+            start_time = time.time()
+            
             while True:
-                chunk = response.read(1024*1024)
+                chunk = response.read(1024*1024) # 1MB chunks
                 if not chunk: break
                 out_file.write(chunk)
+                
+                downloaded += len(chunk)
+                if total_size > 0:
+                    percent = downloaded / total_size * 100
+                    elapsed = time.time() - start_time
+                    speed = downloaded / (elapsed if elapsed > 0 else 1) / (1024*1024) # MB/s
+                    
+                    # Create a simple progress bar
+                    bar_len = 30
+                    filled_len = int(bar_len * downloaded // total_size)
+                    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+                    
+                    print(f"\r{YELLOW}[{bar}] {percent:.1f}% | {downloaded/(1024*1024):.1f}MB / {total_size/(1024*1024):.1f}MB | {speed:.2f} MB/s{RESET}", end="")
+            
+            print() # Newline after done
+            
         print(f"{GREEN}Saved to: {local_path}{RESET}")
     except Exception as e:
         print(f"{RED}Failed: {e}{RESET}")
