@@ -102,6 +102,15 @@ def download_item(base_url, item, current_path, as_zip=False):
     
     input(f"{GREY}[Press Enter]{RESET}")
 
+MAGENTA = "\033[95m"
+CYAN_DARK = "\033[36m"
+GREEN_DARK = "\033[32m"
+MAGENTA_DARK = "\033[35m"
+BLUE_DARK = "\033[34m"
+YELLOW_DARK = "\033[33m"
+
+ROW_COLORS = [CYAN, GREEN, MAGENTA, BLUE, YELLOW]
+
 def main():
     global CURRENT_ITEMS
     server_ip = get_server_ip()
@@ -126,27 +135,22 @@ def main():
         if not data: print(" (Empty Directory)")
         
         for i, item in enumerate(data):
-            # --- STRIPING LOGIC ---
-            is_even = (i % 2 == 0)
+            # --- COLOR CYCLING LOGIC ---
+            color = ROW_COLORS[i % len(ROW_COLORS)]
             
-            # Even rows: Bright / Normal
-            # Odd rows:  Dim / Grey
-            base_color = RESET if is_even else GREY
-            
-            # Index is Cyan on even, Dark Cyan (Grey) on odd to match
-            idx_str = f"{CYAN if is_even else GREY}{i+1:<3}{RESET}"
+            # Index uses the row color
+            idx_str = f"{color}{i+1:<3}{RESET}"
             
             if item['type'] == 'dir':
-                # Directories are ALWAYS Yellow to stand out
-                ftype = f"{YELLOW}[DIR]{RESET}"
+                # Directories: BOLD + Row Color
+                ftype = f"{BOLD}{color}[DIR]{RESET}"
                 size = "" 
-                name_disp = f"{YELLOW}{item['name']}{RESET}"
+                name_disp = f"{BOLD}{color}{item['name']}{RESET}"
             else:
-                # Files follow the striping pattern
-                ftype = f"{base_color}     {RESET}"
-                # Size is Green on even rows, Grey on odd rows
-                size = f"{GREEN if is_even else GREY}{str(item['size']):<10}{RESET}"
-                name_disp = f"{base_color}{item['name']}{RESET}"
+                # Files: Normal Row Color
+                ftype = f"{color}     {RESET}"
+                size = f"{color}{str(item['size']):<10}{RESET}"
+                name_disp = f"{color}{item['name']}{RESET}"
                 
             print(f" {idx_str} | {ftype} | {size} | {name_disp}")
 
