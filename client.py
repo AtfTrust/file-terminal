@@ -55,9 +55,15 @@ def get_server_ip():
 
 def fetch_list(base_url, rel_path):
     try:
+        # Create a proxy-free opener to avoid local network issues
+        proxy_handler = urllib.request.ProxyHandler({})
+        opener = urllib.request.build_opener(proxy_handler)
+        
         params = urllib.parse.urlencode({'path': rel_path})
         url = f"{base_url}/list?{params}"
-        with urllib.request.urlopen(url, timeout=5) as response:
+        # print(f"DEBUG: Fetching {url}")
+        
+        with opener.open(url, timeout=10) as response:
             return json.loads(response.read().decode())
     except Exception as e:
         print(f"\n{RED}Error: {e}{RESET}")
@@ -81,7 +87,11 @@ def download_item(base_url, item, current_path, as_zip=False):
     local_path = os.path.join(DOWNLOAD_DIR, filename)
     
     try:
-        with urllib.request.urlopen(url) as response, open(local_path, 'wb') as out_file:
+        # Create a proxy-free opener for downloads too
+        proxy_handler = urllib.request.ProxyHandler({})
+        opener = urllib.request.build_opener(proxy_handler)
+        
+        with opener.open(url, timeout=60) as response, open(local_path, 'wb') as out_file:
             while True:
                 chunk = response.read(1024*1024)
                 if not chunk: break
