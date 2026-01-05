@@ -14,6 +14,42 @@ class ThreadingSimpleServer(socketserver.ThreadingMixIn, socketserver.TCPServer)
     pass
 
 class NavHandler(http.server.SimpleHTTPRequestHandler):
+    def do_POST(self):
+        # --- UPLOAD API ---
+        if self.path == '/upload':
+            try:
+                # Simple upload: Query param 'path', Body is file content
+                content_length = int(self.headers['Content-Length'])
+                parsed = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(parsed.query)
+                
+                rel_path = query.get('path', ['.'])[0]
+                filename = query.get('name', ['uploaded_file'])[0]
+                
+                target_dir = os.path.abspath(os.path.join(START_DIR, rel_path))
+                if not os.path.isdir(target_dir):
+                    self.send_error(404, "Directory not found")
+                    return
+                    
+                full_path = os.path.join(target_dir, filename)
+                
+                with open(full_path, 'wb') as f:
+                    remaining = content_length
+                    while remaining > 0:
+                        chunk_size = 1024 * 1024 if remaining > 1024*1024 else remaining
+                        chunk = self.rfile.read(chunk_size)
+                        if not chunk: break
+                        f.write(chunk)
+                        remaining -= len(chunk)
+                        
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Upload successful")
+            except Exception as e:
+                self.send_error(500, str(e))
+        else:
+            self.send_error(405, "Method not allowed")
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         query = urllib.parse.parse_qs(parsed.query)

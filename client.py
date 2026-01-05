@@ -23,7 +23,7 @@ BOLD = "\033[1m"
 
 # Global list for tab-completion
 CURRENT_ITEMS = []
-COMMANDS = ['cd', 'get', 'zip', 'exit', 'quit', '..']
+COMMANDS = ['cd', 'get', 'put', 'zip', 'exit', 'quit', '..']
 
 def complete(text, state):
     buffer = readline.get_line_buffer()
@@ -123,6 +123,41 @@ def download_item(base_url, item, current_path, as_zip=False):
     
     input(f"{GREY}[Press Enter]{RESET}")
 
+def upload_file(base_url, local_path, remote_dir):
+    if not os.path.exists(local_path):
+        print(f"{RED}Error: Local file not found.{RESET}")
+        return
+
+    filename = os.path.basename(local_path)
+    file_size = os.path.getsize(local_path)
+    
+    print(f"\nUploading: {BOLD}{filename}{RESET} ({file_size} bytes)")
+    
+    try:
+        # Create a proxy-free opener
+        proxy_handler = urllib.request.ProxyHandler({})
+        opener = urllib.request.build_opener(proxy_handler)
+        
+        params = urllib.parse.urlencode({'path': remote_dir, 'name': filename})
+        url = f"{base_url}/upload?{params}"
+        
+        with open(local_path, 'rb') as f:
+            data = f.read() # Read entire file into memory for simplicity (stream for large files if needed)
+            
+        req = urllib.request.Request(url, data=data, method='POST')
+        req.add_header('Content-Length', str(len(data)))
+        
+        with opener.open(req, timeout=60) as response:
+            if response.status == 200:
+                print(f"{GREEN}Upload successful!{RESET}")
+            else:
+                print(f"{RED}Upload failed: {response.read().decode()}{RESET}")
+                
+    except Exception as e:
+         print(f"{RED}Failed: {e}{RESET}")
+    
+    input(f"{GREY}[Press Enter]{RESET}")
+
 MAGENTA = "\033[95m"
 CYAN_DARK = "\033[36m"
 GREEN_DARK = "\033[32m"
@@ -194,42 +229,96 @@ def main():
                 if not current_path: current_path = "."
             continue
 
-        target_item = None
-        
-        if action.isdigit():
-            idx = int(action) - 1
-            if 0 <= idx < len(data): target_item = data[idx]
-        else:
-            if action in ['cd', 'get', 'zip']:
-                search_name = arg
+        if action == 'put':
+            if not arg:
+                print(f"{RED}Usage: put <local_file_path>{RESET}")
+                input()
             else:
-                search_name = cmd
-            
-            for item in data:
-                if item['name'] == search_name:
-                    target_item = item
-                    break
+                upload_file(base_url, arg, current_path)
+            continue
+
+        target_items = []
         
-        if target_item:
-            if action == 'zip':
+        # Helper to get item by Index or Name
+        def get_item_by_ref(ref):
+            if ref.isdigit():
+                idx = int(ref) - 1
+                if 0 <= idx < len(data): return data[idx]
+            else:
+                for item in data:
+                    if item['name'] == ref: return item
+            return None
+
+        # PARSE TARGETS
+        if action.isdigit():
+             # Single direct index access -> cd (dir) or get (file) logic handled dynamically later
+             t = get_item_by_ref(action)
+             if t: target_items.append(t)
+        
+        elif action in ['get', 'zip']:
+            # Handle multiple arguments: "1 2 3" or "1-5" or "file.txt"
+            # Args are in 'arg' string. We need to split properly.
+            # Special case: filenames with spaces? For now assuming space-separated IDs or filenames without spaces if multiple context.
+            
+            raw_tokens = arg.split()
+            for token in raw_tokens:
+                if '-' in token and token.replace('-', '').isdigit():
+                    # Range 1-5
+                    start, end = map(int, token.split('-'))
+                    for i in range(start, end + 1):
+                        t = get_item_by_ref(str(i))
+                        if t and t not in target_items: target_items.append(t)
+                else:
+                    # Single item (ID or Name)
+                    t = get_item_by_ref(token)
+                    if t and t not in target_items: target_items.append(t)
+        
+        elif action == 'cd':
+             t = get_item_by_ref(arg)
+             if t: target_items.append(t)
+             
+        else:
+             # Try to match command as a filename directly (fallback for implicit 'cd' or 'get'?? No, current logic is strict)
+             # But legacy logic allowed "foldername" to cd.
+             t = get_item_by_ref(cmd)
+             if t: target_items.append(t)
+
+        
+        if not target_items:
+             if action not in ['cd', 'get', 'zip', 'put']:
+                  print(f"{RED}Item '{cmd}' not found.{RESET}")
+                  input()
+             continue
+
+        # PROCESS TARGETS
+        for target_item in target_items:
+            # Smart Default Action if just typed number/name
+            current_action = action
+            if current_action.isdigit() or current_action not in ['cd', 'get', 'zip']:
+                 if target_item['type'] == 'dir': current_action = 'cd'
+                 else: current_action = 'get'
+
+            if current_action == 'zip':
                 if target_item['type'] == 'dir':
                     download_item(base_url, target_item, current_path, as_zip=True)
                 else:
-                    print(f"{RED}Error: Use 'get' for files.{RESET}")
-                    input()
-            elif target_item['type'] == 'dir':
-                if action == 'get': 
-                    print(f"{YELLOW}Zipping folder...{RESET}")
+                    print(f"{RED}Error: Use 'get' for files ({target_item['name']}).{RESET}")
+                    
+            elif current_action == 'get':
+                if target_item['type'] == 'dir':
+                    print(f"{YELLOW}Zipping folder: {target_item['name']}{RESET}")
                     download_item(base_url, target_item, current_path, as_zip=True)
                 else:
+                    download_item(base_url, target_item, current_path, as_zip=False)
+                    
+            elif current_action == 'cd':
+                if target_item['type'] == 'dir':
                     if current_path == ".": current_path = target_item['name']
                     else: current_path = f"{current_path}/{target_item['name']}"
-            else:
-                download_item(base_url, target_item, current_path, as_zip=False)
-        else:
-            if action not in ['cd', 'get', 'zip']:
-                 print(f"{RED}Item '{cmd}' not found.{RESET}")
-                 input()
+                    # CD only supports one target realistically, so break after first success
+                    break 
+                else:
+                     print(f"{RED}Error: '{target_item['name']}' is not a directory.{RESET}")
 
 if __name__ == "__main__":
     main()
