@@ -23,7 +23,7 @@ BOLD = "\033[1m"
 
 # Global list for tab-completion
 CURRENT_ITEMS = []
-COMMANDS = ['cd', 'get', 'zip', 'ls', 'exit', 'quit', '..']
+COMMANDS = ['cd', 'get', 'zip', 'exit', 'quit', '..']
 
 def complete(text, state):
     buffer = readline.get_line_buffer()
@@ -188,7 +188,6 @@ def main():
         arg = parts[1] if len(parts) > 1 else ""
 
         if action in ['exit', 'quit', 'q']: break
-        if action == 'ls': continue
         if action == '..' or (action == 'cd' and arg == '..'):
             if current_path != ".":
                 current_path = os.path.dirname(current_path)
