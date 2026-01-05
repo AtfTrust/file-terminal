@@ -48,7 +48,6 @@ python client.py
 | Command | Description |
 | :--- | :--- |
 | `cd <dir>` | Change directory |
-| `ls` | List current directory |
 | `get <file>` | Download a file or zip a folder |
 | `zip <dir>` | Download a folder as a zip file |
 | `..` | Go up one directory |
