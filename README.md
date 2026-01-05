@@ -51,7 +51,7 @@ python client.py
 | `ls` | List current directory |
 | `get <file>` | Download a file or zip a folder |
 | `zip <dir>` | Download a folder as a zip file |
-| `pd` or `..` | Go up one directory |
+| `..` | Go up one directory |
 | `exit` / `quit` | Exit the client |
 
 You can also simply type the **Index Number** of a file/folder to select it (navigates into folders, downloads files).
