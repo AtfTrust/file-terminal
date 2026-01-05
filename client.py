@@ -6,6 +6,7 @@ import subprocess
 import sys
 import readline
 import time
+import glob
 
 # --- CONFIG ---
 DEFAULT_IP = "192.168.33.61"
@@ -27,11 +28,42 @@ COMMANDS = ['cd', 'get', 'put', 'zip', 'help', '?', 'exit', 'quit', '..']
 
 def complete(text, state):
     buffer = readline.get_line_buffer()
-    if " " not in buffer.lstrip():
+    line_stripped = buffer.lstrip()
+    
+    options = []
+    
+    # Check if we are typing a command (first word)
+    if " " not in line_stripped:
         options = COMMANDS + [i['name'] for i in CURRENT_ITEMS]
+        matches = [s for s in options if s.startswith(text)]
     else:
-        options = [i['name'] for i in CURRENT_ITEMS]
-    matches = [s for s in options if s.startswith(text)]
+        # We are typing an argument
+        cmd_parts = line_stripped.split()
+        cmd = cmd_parts[0]
+        
+        if cmd == 'put':
+            # Local file completion
+            # Expand ~user directories if present, though glob handles some
+            path_prefix = os.path.expanduser(text)
+            
+            # Use glob to find matches
+            # If text is empty, list current dir
+            # If text ends with /, list that dir
+            search_pat = path_prefix + "*"
+            glob_matches = glob.glob(search_pat)
+            
+            # We need to append / to directories to make navigation continuous
+            matches = []
+            for m in glob_matches:
+                if os.path.isdir(m):
+                    matches.append(m + "/")
+                else:
+                    matches.append(m)
+        else:
+            # Remote item completion
+            options = [i['name'] for i in CURRENT_ITEMS]
+            matches = [s for s in options if s.startswith(text)]
+
     try:
         return matches[state]
     except IndexError:
@@ -137,10 +169,14 @@ def show_help():
 
 def upload_file(base_url, local_path_arg, remote_dir):
     # Try to resolve the local file path
+    # 1. Expand User (~/)
+    expanded_arg = os.path.expanduser(local_path_arg)
+    
     candidates = [
-        local_path_arg,                                      # As provided (relative or absolute)
+        expanded_arg,                                        # Expanded path
+        local_path_arg,                                      # As provided
         os.path.join(DOWNLOAD_DIR, local_path_arg),          # In the download folder
-        os.path.abspath(local_path_arg)                      # Absolute from CWD
+        os.path.abspath(expanded_arg)                        # Absolute
     ]
     
     local_path = None
