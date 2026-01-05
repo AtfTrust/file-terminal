@@ -135,9 +135,26 @@ def show_help():
     print(f"\n  {GREY}Tip: You can simply type the index number to enter a folder or download a file.{RESET}")
     input(f"{GREY}[Press Enter]{RESET}")
 
-def upload_file(base_url, local_path, remote_dir):
-    if not os.path.exists(local_path):
-        print(f"{RED}Error: Local file not found.{RESET}")
+def upload_file(base_url, local_path_arg, remote_dir):
+    # Try to resolve the local file path
+    candidates = [
+        local_path_arg,                                      # As provided (relative or absolute)
+        os.path.join(DOWNLOAD_DIR, local_path_arg),          # In the download folder
+        os.path.abspath(local_path_arg)                      # Absolute from CWD
+    ]
+    
+    local_path = None
+    for c in candidates:
+        if os.path.exists(c) and os.path.isfile(c):
+            local_path = c
+            break
+            
+    if not local_path:
+        print(f"\n{RED}Error: Local file '{local_path_arg}' not found.{RESET}")
+        print(f"{GREY}Checked locations:{RESET}")
+        print(f"  - {os.getcwd()}")
+        print(f"  - {DOWNLOAD_DIR}")
+        print(f"\n{YELLOW}Tip: Provide the full path or move the file to your Downloads folder.{RESET}")
         return
 
     filename = os.path.basename(local_path)
