@@ -77,7 +77,9 @@ class NavHandler(http.server.SimpleHTTPRequestHandler):
                     # Serve the file
                     self.send_response(200)
                     self.send_header("Content-Type", "application/zip")
-                    self.send_header("Content-Disposition", f'attachment; filename="{base_name}.zip"')
+                    # Encode the filename for Content-Disposition (RFC 6266)
+                    safe_filename = urllib.parse.quote(f"{base_name}.zip")
+                    self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{safe_filename}")
                     self.send_header("Content-Length", str(os.path.getsize(zip_path)))
                     self.end_headers()
                     
