@@ -16,7 +16,8 @@ class ThreadingSimpleServer(socketserver.ThreadingMixIn, socketserver.TCPServer)
 class NavHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         # --- UPLOAD API ---
-        if self.path == '/upload':
+        # Only check startswith because url params are involved
+        if self.path.startswith('/upload'):
             try:
                 # Simple upload: Query param 'path', Body is file content
                 content_length = int(self.headers['Content-Length'])
